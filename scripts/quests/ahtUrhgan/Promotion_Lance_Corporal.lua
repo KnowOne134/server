@@ -8,113 +8,146 @@
 -- Mythralline Wellspring 3: !pos 181 -23 268 51
 -- Mythralline Wellspring 4: !pos 259 -23 132 51
 -- Mythralline Wellspring 5: !pos 181 -15 373 52
+-- Prog: running total of player's test tube contents
+-- Option: what mixture was turned in to the guild
 -----------------------------------
 
 local quest = Quest:new(xi.quest.log_id.AHT_URHGAN, xi.quest.id.ahtUrhgan.PROMOTION_LANCE_CORPORAL)
 
-local function getQuestMiniGameBits(player)
-    local value = 0
-    local keyItems =
-    {
-        { ki = xi.ki.TEST_TUBE_1, value = 1 },
-        { ki = xi.ki.TEST_TUBE_2, value = 2 },
-        { ki = xi.ki.TEST_TUBE_3, value = 4 },
-        { ki = xi.ki.TEST_TUBE_4, value = 8 },
-        { ki = xi.ki.TEST_TUBE_5, value = 16 },
-    }
+local stage =
+{
+    START     = 0,
+    FIRST_MIX = 1,
+    REMIX     = 2,
+    WAIT      = 3,
+}
 
-    for _, test_tube in pairs(keyItems) do
-        if not player:hasKeyItem(test_tube.ki) then
-            value = value + test_tube.value
-        end
-    end
+local tube =
+{
+    ONE   = 1,
+    TWO   = 2,
+    THREE = 3,
+    FOUR  = 4,
+    FIVE  = 5,
+}
 
-    return value
-    --[[
-    the math used to get end results
-    tube 1 = 1
-    tube 2 = 4
-    tube 3 = 16
-    tube 4 = 64
-    tube 5 = 256
-    ]]
+local tubeKeyItems =
+{
+    [tube.ONE]   = {filledTube = xi.ki.TEST_TUBE_1, emptyTube = xi.ki.EMPTY_TEST_TUBE_1},
+    [tube.TWO]   = {filledTube = xi.ki.TEST_TUBE_2, emptyTube = xi.ki.EMPTY_TEST_TUBE_2},
+    [tube.THREE] = {filledTube = xi.ki.TEST_TUBE_3, emptyTube = xi.ki.EMPTY_TEST_TUBE_3},
+    [tube.FOUR]  = {filledTube = xi.ki.TEST_TUBE_4, emptyTube = xi.ki.EMPTY_TEST_TUBE_4},
+    [tube.FIVE]  = {filledTube = xi.ki.TEST_TUBE_5, emptyTube = xi.ki.EMPTY_TEST_TUBE_5},
+}
+
+local fillLevel =
+{
+    FULL            = 0,
+    ONE_THIRD_USED  = 1,
+    TWO_THIRDS_USED = 2,
+    EMPTY           = 3,
+}
+
+local function getFluidLevel(player, tubeNum, var)
+    local allTubes = utils.splitBits(quest:getVar(player, var), 2)
+
+    return allTubes[tubeNum] or 0
 end
 
-local function checkForReset(player, option1)
-    local tube = utils.splitBits(option1, 2)
-    local count = 0
-    local result = true
+local function getFilledTubeCount(player)
+    local tubeCount = 0
 
-    for i = 1, 5 do
-        local vial = tube[i]
-        if vial then
-            if vial == 0 then
-                count = count + 3
-            elseif vial == 1 then
-                count = count + 2
-            elseif vial == 2 then
-                count = count + 1
-            end
-        else
-            count = count + 3
+    for _, keyItems in ipairs(tubeKeyItems) do
+        if player:hasKeyItem(keyItems.filledTube) then
+            tubeCount = tubeCount + 1
         end
     end
 
-    if count > 1 then
-        result = false
+    return tubeCount
+end
+
+local function canFillTube(player, tubeNum)
+    return player:hasKeyItem(tubeKeyItems[tubeNum].emptyTube)
+    or (quest:getVar(player, 'Stage') == stage.REMIX and getFluidLevel(player, tubeNum, 'Prog') ~= fillLevel.FULL)
+end
+
+local function fillTestTube(player, tubeNum)
+    local bitPosOne = (tubeNum * 2) - 1
+    local bitPosTwo = bitPosOne - 1
+
+    quest:unsetVarBit(player, 'Prog', bitPosOne)
+    quest:unsetVarBit(player, 'Prog', bitPosTwo)
+
+    if player:hasKeyItem(tubeKeyItems[tubeNum].emptyTube) then
+        player:delKeyItem(tubeKeyItems[tubeNum].emptyTube)
+        player:addKeyItem(tubeKeyItems[tubeNum].filledTube)
     end
 
-    return result
+    if quest:getVar(player, 'Stage') == stage.FIRST_MIX then
+        player:messageSpecial(zones[player:getZoneID()].text.KEYITEM_OBTAINED, tubeKeyItems[tubeNum].filledTube)
+    else
+        player:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 1)
+    end
 end
 
 local function getQuestReward(player)
-    local option = quest:getVar(player,'Stage')
-    local items = 0
-    local amount = 0
-    local rewards =
-    {
-        [1] = { item = xi.items.IMPERIAL_MYTHRIL_PIECE, amount = math.random(3, 4) },
-        [2] = { item = xi.items.IMPERIAL_GOLD_PIECE, amount = 1 },
-        [3] = { item = xi.items.IMPERIAL_GOLD_PIECE, amount = 2 },
-    }
+    local tubeAmounts = {} -- calculate how many thirds of each tube were used, multiply by the tube's density and add them all together.
 
-    local Luminium = { 108, 168, 228, 312, 372, 432 }
-    local Platinum =
-    {
-        15, 24, 26, 27, 28, 29, 30, 37, 38, 39, 40, 41, 42, 44, 45, 48, 49, 50, 51, 52, 53, 54, 56, 57, 71, 72, 75, 76, 77,
-        78, 86, 87, 88, 89, 90, 91, 92, 93, 97, 98, 99, 100, 101, 102, 104, 105, 112, 113, 114, 116, 117, 135, 136, 137,
-        138, 139, 140, 141, 146, 147, 148, 149, 150, 152, 153, 156, 160, 161, 162, 164, 165, 176, 177, 195, 196, 197, 198,
-        200, 201, 204, 208, 209, 210, 212, 213, 216, 224, 225, 269, 270, 277, 279, 280, 281, 282, 284, 285, 291, 292, 293,
-        294, 296, 297, 300, 304, 308, 309, 329, 330, 331, 332, 333, 337, 339, 340, 341, 342, 344, 345, 348, 352, 353, 354,
-        356, 357, 360, 356, 360, 368, 369, 384, 389, 390, 392, 393, 396, 400, 401, 402, 404, 405, 408, 416, 417, 420, 449,
-        450, 452, 453, 464, 465, 468, 480, 522, 523, 524, 525, 533, 534, 536, 537, 540, 544, 546, 548, 549, 552, 560, 564,
-        581, 582, 584, 585, 588, 593, 594, 596, 597, 600, 608, 609, 612, 624, 641, 642, 644, 645, 648, 656, 657, 660, 672,
-        704, 705, 708, 720, 776, 777, 780, 785, 786, 788, 789, 792, 800, 804, 816, 836, 837, 838, 840, 848, 849, 852, 864,
-        896, 897, 900, 912, 960
-    }
-
-    if utils.tableContains(Luminium, option) then
-        items = rewards[3].item
-        amount = rewards[3].amount
-    elseif utils.tableContains(Platinum, option) then
-        choice = math.random(1, 2)
-        items = rewards[choice].item
-        amount = rewards[choice].amount
+    for tubeNum = tube.ONE, tube.FIVE do
+        table.insert(tubeAmounts, getFluidLevel(player, tubeNum, 'Option'))
     end
 
-    return items, amount
+    local mythrallineQuality = 0
+    local densities = -- densities are constant based on the hints and consistent results.
+    {
+        [tube.ONE]   = 0.5, -- "...appears to be very light."
+        [tube.TWO]   = 1.5, -- "...is at the same level as tube #4."
+        [tube.THREE] = 2.0, -- "...appears to be very dense."
+        [tube.FOUR]  = 1.5, -- "...caused a reaction three times faster than the sample in tube #1."
+        [tube.FIVE]  = 1.0, -- "...has a density is equal to half that of the sample with the highest concentration.."
+    }
+
+    for tubeNum, contents in ipairs(tubeAmounts) do
+        mythrallineQuality = mythrallineQuality + (contents * densities[tubeNum])
+    end
+
+    -- Final Mythralline Quality
+    -- 1.0 - 1.5 = Silver
+    -- 2.0 - 3.5 = Mythril
+    -- 4.0 - 5.5 = Gold
+    -- 6.0 - 9.5 = Platinum
+    -- 10.0      = Luminium
+    -- 10.5      = Smoke
+
+    local reward
+    local rewardTiers =
+    {
+        luminium = { item = xi.items.IMPERIAL_GOLD_PIECE, amount = 2 },
+        platinum =
+        {
+            { item = xi.items.IMPERIAL_MYTHRIL_PIECE, amount = math.random(3, 4) },
+            { item = xi.items.IMPERIAL_GOLD_PIECE, amount = 1 },
+        },
+    }
+
+    if mythrallineQuality == 10 then
+        reward = rewardTiers.luminium
+    elseif mythrallineQuality >= 6 and mythrallineQuality <= 9.5 then
+        reward = rewardTiers.platinum[math.random(#rewardTiers.platinum)]
+    end
+
+    return reward
 end
 
 quest.reward =
 {
     keyItem = xi.ki.LC_WILDCAT_BADGE,
-    title = xi.title.LANCE_CORPORAL,
+    title   = xi.title.LANCE_CORPORAL,
 }
 
 quest.sections =
 {
-    {
-        -- Start Quest: Trigger Abquhbah
+    { -- Start: Trigger Abquhbah
         check = function(player, status, vars)
             return status == xi.quest.status.AVAILABLE and player:getVar("AssaultPromotion") >= 25
             and player:getQuestStatus(xi.quest.log_id.AHT_URHGAN, xi.quest.id.ahtUrhgan.PROMOTION_SUPERIOR_PRIVATE) == xi.quest.status.COMPLETED
@@ -132,10 +165,9 @@ quest.sections =
             },
         },
     },
-    {
-        -- Quest started 1st Stage: Trigger Nafiwaa and recieve 5 KI empty test tubes
+    { -- 1st Stage: Trigger Nafiwaa and recieve 5 KI empty test tubes
         check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and vars.Prog == 0
+            return status == xi.quest.status.ACCEPTED and vars.Stage == stage.START
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -147,17 +179,16 @@ quest.sections =
             onEventFinish =
             {
                 [5035] = function(player, csid, option, npc)
-                    quest:setVar(player, 'Prog', 1)
+                    quest:setVar(player, 'Stage', stage.FIRST_MIX)
                     npcUtil.giveKeyItem(player, { xi.ki.EMPTY_TEST_TUBE_1, xi.ki.EMPTY_TEST_TUBE_2,
                         xi.ki.EMPTY_TEST_TUBE_3, xi.ki.EMPTY_TEST_TUBE_4, xi.ki.EMPTY_TEST_TUBE_5 })
                 end,
             },
         },
     },
-    {
-        -- Quest 2nd Stage: Goto Mythralline Wellsprings and change Empty tests tubes to filled KI's
+    { -- 2nd (and optional 3rd) Stage: Go to Mythralline Wellsprings and fill tubes; Trigger Nafiwaa to do mini game and mix mythralline
         check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and vars.Prog == 1 and vars.Option < 31
+            return status == xi.quest.status.ACCEPTED and (vars.Stage == stage.FIRST_MIX or vars.Stage == stage.REMIX)
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -167,12 +198,71 @@ quest.sections =
             ['Nafiwaa'] =
             {
                 onTrigger = function(player, npc)
-                    local testTubes = quest:getVar(player, 'Option')
+                    local currentStage = quest:getVar(player, 'Stage')
+                    local tubeContents = quest:getVar(player, 'Prog')
+                    local isRemix = currentStage == stage.REMIX and 1 or 0
+                    local emptyTubes = 0
 
-                    if testTubes == 0 then
-                        return quest:event(5036)
-                    else
-                        return quest:event(5037, {[1] = utils.countSetBits(testTubes)})
+                    if currentStage == stage.FIRST_MIX then
+                        local filledTubeCount = getFilledTubeCount(player)
+
+                        if filledTubeCount == 0 then
+                            return quest:event(5036)
+                        elseif filledTubeCount < 5 then -- must gather all 5 tubes on first mix
+                            return quest:event(5037, {[1] = filledTubeCount})
+                        end
+                    elseif currentStage == stage.REMIX then
+                        local totalThirds = 15
+
+                        for tubeNum = tube.ONE, tube.FIVE do
+                            totalThirds = totalThirds - getFluidLevel(player, tubeNum, 'Prog')
+                        end
+
+                        if totalThirds < 2 then -- not enough liquid to mix anything
+                            return quest:event(5036)
+                        end
+                    end
+
+                    for tubeNum, keyItems in ipairs(tubeKeyItems) do
+                        if player:hasKeyItem(keyItems.emptyTube) then
+                            emptyTubes = utils.setBit(emptyTubes, tubeNum - 1, 1)
+                        end
+                    end
+
+                    return quest:progressEvent(5038, { [2] = tubeContents, [5] = emptyTubes, [7] = isRemix, text_table = 0 })
+                end,
+            },
+
+            onEventFinish =
+            {
+                [5038] = function(player, csid, option, npc)
+                    local remainingTubeContents, option = utils.varSplit(option, 16)
+
+                    option = bit.rshift(option, 14)
+
+                    if option == 2 then -- accept the results, turn in to guild
+                        local startingContents = quest:getVar(player, 'Prog')
+
+                        quest:setVar(player, 'Stage', stage.WAIT)
+                        quest:setVar(player, 'Wait', vanaDay() + 1)
+                        quest:setVar(player, 'Option', remainingTubeContents - startingContents)
+
+                        for keyItem = xi.ki.EMPTY_TEST_TUBE_1, xi.ki.TEST_TUBE_5 do
+                            if player:hasKeyItem(keyItem) then
+                                player:delKeyItem(keyItem)
+                            end
+                        end
+
+                    elseif option == 1 then -- threw it out
+                        quest:setVar(player, 'Stage', stage.REMIX)
+                        quest:setVar(player, 'Prog', remainingTubeContents)
+
+                        for tubeNum, tubeKeyItem in ipairs(tubeKeyItems) do
+                            if getFluidLevel(player, tubeNum, 'Prog') == fillLevel.EMPTY and player:hasKeyItem(tubeKeyItem.filledTube) then
+                                player:delKeyItem(tubeKeyItem.filledTube)
+                                player:addKeyItem(tubeKeyItem.emptyTube)
+                            end
+                        end
                     end
                 end,
             },
@@ -182,65 +272,57 @@ quest.sections =
             ['Mythralline_Wellspring_1'] =
             {
                 onTrigger = function(player, npc)
-                    if player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_1) then
+                    if canFillTube(player, tube.ONE) then
                         return quest:progressEvent(4)
-                    else
-                        return quest:messageSpecial(zones[player:getZoneID()].text.SPRING_WATER)
                     end
+
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
                 end,
             },
             ['Mythralline_Wellspring_2'] =
             {
                 onTrigger = function(player, npc)
-                    if player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_2) then
+                    if canFillTube(player, tube.TWO) then
                         return quest:progressEvent(5)
-                    else
-                        return quest:messageSpecial(zones[player:getZoneID()].text.SPRING_WATER)
                     end
+
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
                 end,
             },
             ['Mythralline_Wellspring_3'] =
             {
                 onTrigger = function(player, npc)
-                    if player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_3) then
+                    if canFillTube(player, tube.THREE) then
                         return quest:progressEvent(6)
-                    else
-                        return quest:messageSpecial(zones[player:getZoneID()].text.SPRING_WATER)
                     end
+
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
                 end,
             },
             ['Mythralline_Wellspring_4'] =
             {
                 onTrigger = function(player, npc)
-                    if player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_4) then
+                    if canFillTube(player, tube.FOUR) then
                         return quest:progressEvent(7)
-                    else
-                        return quest:messageSpecial(zones[player:getZoneID()].text.SPRING_WATER)
                     end
+
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
                 end,
             },
 
             onEventFinish =
             {
                 [4] = function(player, csid, option, npc)
-                    npcUtil.giveKeyItem(player, xi.ki.TEST_TUBE_1)
-                    player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_1)
-                    quest:setVarBit(player, 'Option', 0)
+                    fillTestTube(player, tube.ONE)
                 end,
                 [5] = function(player, csid, option, npc)
-                    npcUtil.giveKeyItem(player, xi.ki.TEST_TUBE_2)
-                    player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_2)
-                    quest:setVarBit(player, 'Option', 1)
+                    fillTestTube(player, tube.TWO)
                 end,
                 [6] = function(player, csid, option, npc)
-                    npcUtil.giveKeyItem(player, xi.ki.TEST_TUBE_3)
-                    player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_3)
-                    quest:setVarBit(player, 'Option', 2)
+                    fillTestTube(player, tube.THREE)
                 end,
                 [7] = function(player, csid, option, npc)
-                    npcUtil.giveKeyItem(player, xi.ki.TEST_TUBE_4)
-                    player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_4)
-                    quest:setVarBit(player, 'Option', 3)
+                    fillTestTube(player, tube.FOUR)
                 end,
             },
         },
@@ -249,116 +331,25 @@ quest.sections =
             ['Mythralline_Wellspring_5'] =
             {
                 onTrigger = function(player, npc)
-                    if player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_5) then
+                    if canFillTube(player, tube.FIVE) then
                         return quest:progressEvent(10)
-                    else
-                        return quest:messageSpecial(zones[player:getZoneID()].text.SPRING_WATER)
                     end
+
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
                 end,
             },
 
             onEventFinish =
             {
                 [10] = function(player, csid, option, npc)
-                    npcUtil.giveKeyItem(player, xi.ki.TEST_TUBE_5)
-                    player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_5)
-                    quest:setVarBit(player, 'Option', 4)
+                    fillTestTube(player, tube.FIVE)
                 end,
             },
         },
     },
-    {
-        -- Quest 3rd Stage: Trigger Nafiwaa to do mini game
+    { -- Complete: after game day wait, enter region
         check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and vars.Prog == 1 and vars.Option == 31
-        end,
-
-        [xi.zone.AHT_URHGAN_WHITEGATE] =
-        {
-            ['Nafiwaa'] =
-            {
-                onTrigger = function(player, npc)
-                    local vialsUsed = quest:getVar(player, 'Stage')
-                    local continueProcess = vialsUsed == 0 and 0 or 1
-                    return quest:progressEvent(5038, { [2] = vialsUsed, [5] = getQuestMiniGameBits(player), [7] = continueProcess, text_table = 0 })
-                end,
-            },
-
-            onEventFinish =
-            {
-                [5038] = function(player, csid, option, npc)
-                    local option1, option2 = utils.varSplit(option, 16)
-                    if option2 == 0x8000 then -- accept then results
-                        quest:setVar(player, 'Stage', option1)
-                        quest:setVar(player, 'Prog', vanaDay() + 1)
-                        quest:setVar(player, "Option", 0)
-                        player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_1)
-                        player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_2)
-                        player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_3)
-                        player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_4)
-                        player:delKeyItem(xi.ki.EMPTY_TEST_TUBE_5)
-                        player:delKeyItem(xi.ki.TEST_TUBE_1)
-                        player:delKeyItem(xi.ki.TEST_TUBE_2)
-                        player:delKeyItem(xi.ki.TEST_TUBE_3)
-                        player:delKeyItem(xi.ki.TEST_TUBE_4)
-                        player:delKeyItem(xi.ki.TEST_TUBE_5)
-                    else
-                        quest:setVar(player, 'Stage', option1)
-                        local tube = utils.splitBits(option1, 2)
-                        if tube[1] and tube[1] == 3 and player:hasKeyItem(xi.ki.TEST_TUBE_1) then
-                            player:delKeyItem(xi.ki.TEST_TUBE_1)
-                            player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_1)
-                        end
-                        if tube[2] and tube[2] == 3 and player:hasKeyItem(xi.ki.TEST_TUBE_2) then
-                            player:delKeyItem(xi.ki.TEST_TUBE_2)
-                            player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_2)
-                        end
-                        if tube[3] and tube[3] == 3 and player:hasKeyItem(xi.ki.TEST_TUBE_3) then
-                            player:delKeyItem(xi.ki.TEST_TUBE_3)
-                            player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_3)
-                        end
-                        if tube[4] and tube[4] == 3 and player:hasKeyItem(xi.ki.TEST_TUBE_4) then
-                            player:delKeyItem(xi.ki.TEST_TUBE_4)
-                            player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_4)
-                        end
-                        if tube[5] and tube[5] == 3 and player:hasKeyItem(xi.ki.TEST_TUBE_5) then
-                            player:delKeyItem(xi.ki.TEST_TUBE_5)
-                            player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_5)
-                        end
-
-                        if checkForReset(player, option1) then
-                            quest:setVar(player, "Option", 0)
-                            quest:setVar(player, 'Stage', 0)
-                            player:delKeyItem(xi.ki.TEST_TUBE_1)
-                            player:delKeyItem(xi.ki.TEST_TUBE_2)
-                            player:delKeyItem(xi.ki.TEST_TUBE_3)
-                            player:delKeyItem(xi.ki.TEST_TUBE_4)
-                            player:delKeyItem(xi.ki.TEST_TUBE_5)
-                            if not player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_1) then
-                                player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_1)
-                            end
-                            if not player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_2) then
-                                player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_2)
-                            end
-                            if not player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_3) then
-                                player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_3)
-                            end
-                            if not player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_4) then
-                                player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_4)
-                            end
-                            if not player:hasKeyItem(xi.ki.EMPTY_TEST_TUBE_5) then
-                                player:addKeyItem(xi.ki.EMPTY_TEST_TUBE_5)
-                            end
-                        end
-                    end
-                end,
-            },
-        },
-    },
-    {
-        -- Complete Quest: after game day wait, enter region
-        check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and vars.Prog > 1 and vars.Stage > 0
+            return status == xi.quest.status.ACCEPTED and vars.Stage == stage.WAIT and vars.Option > 0
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -369,8 +360,8 @@ quest.sections =
 
             onRegionEnter =
             {
-                [3] = function(player, region)
-                    if quest:getVar(player, 'Prog') <= vanaDay() then
+                [3] = function(player, triggerArea)
+                    if quest:getVar(player, 'Wait') <= vanaDay() then
                         return quest:progressEvent(5031, { text_table = 0 })
                     end
                 end,
@@ -379,16 +370,54 @@ quest.sections =
             onEventFinish =
             {
                 [5031] = function(player, csid, option, npc)
-                    local item, amount = getQuestReward(player)
-                    if item > 0 then
-                        if not npcUtil.giveItem(player, {{item, amount}}) then
+                    local reward = getQuestReward(player)
+
+                    if reward then
+                        if not npcUtil.giveItem(player, {{reward.item, reward.amount}}) then
                             return
                         end
                     end
+
                     quest:complete(player)
                     quest:messageSpecial(zones[player:getZoneID()].text.LANCE_CORPORAL)
                     player:setVar("AssaultPromotion", 0)
                     player:delKeyItem(xi.ki.SP_WILDCAT_BADGE)
+                end,
+            },
+        },
+        [xi.zone.WAJAOM_WOODLANDS] =
+        {
+            ['Mythralline_Wellspring_1'] =
+            {
+                onTrigger = function(player, npc)
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                end,
+            },
+            ['Mythralline_Wellspring_2'] =
+            {
+                onTrigger = function(player, npc)
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                end,
+            },
+            ['Mythralline_Wellspring_3'] =
+            {
+                onTrigger = function(player, npc)
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                end,
+            },
+            ['Mythralline_Wellspring_4'] =
+            {
+                onTrigger = function(player, npc)
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                end,
+            },
+        },
+        [xi.zone.BHAFLAU_THICKETS] =
+        {
+            ['Mythralline_Wellspring_5'] =
+            {
+                onTrigger = function(player, npc)
+                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
                 end,
             },
         },

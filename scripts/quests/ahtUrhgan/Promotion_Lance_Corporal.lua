@@ -1,6 +1,6 @@
 -----------------------------------
 -- Promotion: Lance Corporal
--- Logid: 6     Quest: 92
+-- Logid: 6 Quest: 92
 -- Abquhbah:                 !pos 35.5 -6.6 -58 50
 -- Nafiwaa:                  !pos -74 -6 126 50
 -- Mythralline Wellspring 1: !pos -92 -15 -339 51
@@ -11,8 +11,11 @@
 -- Prog: running total of player's test tube contents
 -- Option: what mixture was turned in to the guild
 -----------------------------------
+local ahturhganID = zones[xi.zone.AHT_URHGAN_WHITEGATE]
+local bhaflauID    = zones[xi.zone.BHAFLAU_THICKETS]
+local wajaomID     = zones[xi.zone.WAJAOM_WOODLANDS]
 
-local quest = Quest:new(xi.quest.log_id.AHT_URHGAN, xi.quest.id.ahtUrhgan.PROMOTION_LANCE_CORPORAL)
+local quest = Quest:new(xi.questLog.AHT_URHGAN, xi.quest.id.ahtUrhgan.PROMOTION_LANCE_CORPORAL)
 
 local stage =
 {
@@ -33,11 +36,11 @@ local tube =
 
 local tubeKeyItems =
 {
-    [tube.ONE]   = {filledTube = xi.ki.TEST_TUBE_1, emptyTube = xi.ki.EMPTY_TEST_TUBE_1},
-    [tube.TWO]   = {filledTube = xi.ki.TEST_TUBE_2, emptyTube = xi.ki.EMPTY_TEST_TUBE_2},
-    [tube.THREE] = {filledTube = xi.ki.TEST_TUBE_3, emptyTube = xi.ki.EMPTY_TEST_TUBE_3},
-    [tube.FOUR]  = {filledTube = xi.ki.TEST_TUBE_4, emptyTube = xi.ki.EMPTY_TEST_TUBE_4},
-    [tube.FIVE]  = {filledTube = xi.ki.TEST_TUBE_5, emptyTube = xi.ki.EMPTY_TEST_TUBE_5},
+    [tube.ONE]   = { filledTube = xi.ki.TEST_TUBE_1, emptyTube = xi.ki.EMPTY_TEST_TUBE_1 },
+    [tube.TWO]   = { filledTube = xi.ki.TEST_TUBE_2, emptyTube = xi.ki.EMPTY_TEST_TUBE_2 },
+    [tube.THREE] = { filledTube = xi.ki.TEST_TUBE_3, emptyTube = xi.ki.EMPTY_TEST_TUBE_3 },
+    [tube.FOUR]  = { filledTube = xi.ki.TEST_TUBE_4, emptyTube = xi.ki.EMPTY_TEST_TUBE_4 },
+    [tube.FIVE]  = { filledTube = xi.ki.TEST_TUBE_5, emptyTube = xi.ki.EMPTY_TEST_TUBE_5 },
 }
 
 local fillLevel =
@@ -49,7 +52,7 @@ local fillLevel =
 }
 
 local function getFluidLevel(player, tubeNum, var)
-    local allTubes = utils.splitBits(quest:getVar(player, var), 2)
+    local allTubes = utils.mask.splitBits(quest:getVar(player, var), 2)
 
     return allTubes[tubeNum] or 0
 end
@@ -67,8 +70,8 @@ local function getFilledTubeCount(player)
 end
 
 local function canFillTube(player, tubeNum)
-    return player:hasKeyItem(tubeKeyItems[tubeNum].emptyTube)
-    or (quest:getVar(player, 'Stage') == stage.REMIX and getFluidLevel(player, tubeNum, 'Prog') ~= fillLevel.FULL)
+    return player:hasKeyItem(tubeKeyItems[tubeNum].emptyTube) or
+    (quest:getVar(player, 'Stage') == stage.REMIX and getFluidLevel(player, tubeNum, 'Prog') ~= fillLevel.FULL)
 end
 
 local function fillTestTube(player, tubeNum)
@@ -122,11 +125,11 @@ local function getQuestReward(player)
     local reward
     local rewardTiers =
     {
-        luminium = { item = xi.items.IMPERIAL_GOLD_PIECE, amount = 2 },
+        luminium = { item = xi.item.IMPERIAL_GOLD_PIECE, amount = 2 },
         platinum =
         {
-            { item = xi.items.IMPERIAL_MYTHRIL_PIECE, amount = math.random(3, 4) },
-            { item = xi.items.IMPERIAL_GOLD_PIECE, amount = 1 },
+            { item = xi.item.IMPERIAL_MYTHRIL_PIECE, amount = math.random(3, 4) },
+            { item = xi.item.IMPERIAL_GOLD_PIECE, amount = 1 },
         },
     }
 
@@ -149,8 +152,9 @@ quest.sections =
 {
     { -- Start: Trigger Abquhbah
         check = function(player, status, vars)
-            return status == xi.quest.status.AVAILABLE and player:getVar("AssaultPromotion") >= 25
-            and player:getQuestStatus(xi.quest.log_id.AHT_URHGAN, xi.quest.id.ahtUrhgan.PROMOTION_SUPERIOR_PRIVATE) == xi.quest.status.COMPLETED
+            return status == xi.questStatus.QUEST_AVAILABLE and
+            player:getCharVar('AssaultPromotion') >= 25 and
+            player:getQuestStatus(xi.questLog.AHT_URHGAN, xi.quest.id.ahtUrhgan.PROMOTION_SUPERIOR_PRIVATE) == xi.questStatus.QUEST_COMPLETED
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -167,7 +171,8 @@ quest.sections =
     },
     { -- 1st Stage: Trigger Nafiwaa and recieve 5 KI empty test tubes
         check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and vars.Stage == stage.START
+            return status == xi.questStatus.QUEST_ACCEPTED and
+            vars.Stage == stage.START
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -188,7 +193,8 @@ quest.sections =
     },
     { -- 2nd (and optional 3rd) Stage: Go to Mythralline Wellsprings and fill tubes; Trigger Nafiwaa to do mini game and mix mythralline
         check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and (vars.Stage == stage.FIRST_MIX or vars.Stage == stage.REMIX)
+            return status == xi.questStatus.QUEST_ACCEPTED and
+            (vars.Stage == stage.FIRST_MIX or vars.Stage == stage.REMIX)
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -209,7 +215,7 @@ quest.sections =
                         if filledTubeCount == 0 then
                             return quest:event(5036)
                         elseif filledTubeCount < 5 then -- must gather all 5 tubes on first mix
-                            return quest:event(5037, {[1] = filledTubeCount})
+                            return quest:event(5037, { [1] = filledTubeCount })
                         end
                     elseif currentStage == stage.REMIX then
                         local totalThirds = 15
@@ -236,15 +242,15 @@ quest.sections =
             onEventFinish =
             {
                 [5038] = function(player, csid, option, npc)
-                    local remainingTubeContents, option = utils.varSplit(option, 16)
+                    local remainingTubeContents, mask = utils.mask.varSplit(option, 16)
 
-                    option = bit.rshift(option, 14)
+                    local result = bit.rshift(mask, 14)
 
-                    if option == 2 then -- accept the results, turn in to guild
+                    if result == 2 then -- accept the results, turn in to guild
                         local startingContents = quest:getVar(player, 'Prog')
 
                         quest:setVar(player, 'Stage', stage.WAIT)
-                        quest:setVar(player, 'Wait', vanaDay() + 1)
+                        quest:setVar(player, 'Wait', VanadielUniqueDay() + 1)
                         quest:setVar(player, 'Option', remainingTubeContents - startingContents)
 
                         for keyItem = xi.ki.EMPTY_TEST_TUBE_1, xi.ki.TEST_TUBE_5 do
@@ -253,12 +259,15 @@ quest.sections =
                             end
                         end
 
-                    elseif option == 1 then -- threw it out
+                    elseif result == 1 then -- threw it out
                         quest:setVar(player, 'Stage', stage.REMIX)
                         quest:setVar(player, 'Prog', remainingTubeContents)
 
                         for tubeNum, tubeKeyItem in ipairs(tubeKeyItems) do
-                            if getFluidLevel(player, tubeNum, 'Prog') == fillLevel.EMPTY and player:hasKeyItem(tubeKeyItem.filledTube) then
+                            if
+                                getFluidLevel(player, tubeNum, 'Prog') == fillLevel.EMPTY and
+                                player:hasKeyItem(tubeKeyItem.filledTube)
+                            then
                                 player:delKeyItem(tubeKeyItem.filledTube)
                                 player:addKeyItem(tubeKeyItem.emptyTube)
                             end
@@ -276,7 +285,7 @@ quest.sections =
                         return quest:progressEvent(4)
                     end
 
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
                 end,
             },
             ['Mythralline_Wellspring_2'] =
@@ -286,7 +295,7 @@ quest.sections =
                         return quest:progressEvent(5)
                     end
 
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
                 end,
             },
             ['Mythralline_Wellspring_3'] =
@@ -296,7 +305,7 @@ quest.sections =
                         return quest:progressEvent(6)
                     end
 
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
                 end,
             },
             ['Mythralline_Wellspring_4'] =
@@ -306,7 +315,7 @@ quest.sections =
                         return quest:progressEvent(7)
                     end
 
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
                 end,
             },
 
@@ -315,12 +324,15 @@ quest.sections =
                 [4] = function(player, csid, option, npc)
                     fillTestTube(player, tube.ONE)
                 end,
+
                 [5] = function(player, csid, option, npc)
                     fillTestTube(player, tube.TWO)
                 end,
+
                 [6] = function(player, csid, option, npc)
                     fillTestTube(player, tube.THREE)
                 end,
+
                 [7] = function(player, csid, option, npc)
                     fillTestTube(player, tube.FOUR)
                 end,
@@ -335,7 +347,7 @@ quest.sections =
                         return quest:progressEvent(10)
                     end
 
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 3)
+                    return quest:messageSpecial(bhaflauID.text.WELLSPRING + 3)
                 end,
             },
 
@@ -349,7 +361,9 @@ quest.sections =
     },
     { -- Complete: after game day wait, enter region
         check = function(player, status, vars)
-            return status == xi.quest.status.ACCEPTED and vars.Stage == stage.WAIT and vars.Option > 0
+            return status == xi.questStatus.QUEST_ACCEPTED and
+            vars.Stage == stage.WAIT and
+            vars.Option > 0
         end,
 
         [xi.zone.AHT_URHGAN_WHITEGATE] =
@@ -358,10 +372,10 @@ quest.sections =
 
             ['Abquhbah'] = quest:event(5034):importantOnce(),
 
-            onRegionEnter =
+            onTriggerAreaEnter =
             {
                 [3] = function(player, triggerArea)
-                    if quest:getVar(player, 'Wait') <= vanaDay() then
+                    if quest:getVar(player, 'Wait') <= VanadielUniqueDay() then
                         return quest:progressEvent(5031, { text_table = 0 })
                     end
                 end,
@@ -373,14 +387,14 @@ quest.sections =
                     local reward = getQuestReward(player)
 
                     if reward then
-                        if not npcUtil.giveItem(player, {{reward.item, reward.amount}}) then
+                        if not npcUtil.giveItem(player, { { reward.item, reward.amount } }) then
                             return
                         end
                     end
 
                     quest:complete(player)
-                    quest:messageSpecial(zones[player:getZoneID()].text.LANCE_CORPORAL)
-                    player:setVar("AssaultPromotion", 0)
+                    quest:messageSpecial(ahturhganID.text.LANCE_CORPORAL)
+                    player:setCharVar('AssaultPromotion', 0)
                     player:delKeyItem(xi.ki.SP_WILDCAT_BADGE)
                 end,
             },
@@ -390,25 +404,25 @@ quest.sections =
             ['Mythralline_Wellspring_1'] =
             {
                 onTrigger = function(player, npc)
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
                 end,
             },
             ['Mythralline_Wellspring_2'] =
             {
                 onTrigger = function(player, npc)
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
                 end,
             },
             ['Mythralline_Wellspring_3'] =
             {
                 onTrigger = function(player, npc)
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
                 end,
             },
             ['Mythralline_Wellspring_4'] =
             {
                 onTrigger = function(player, npc)
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
                 end,
             },
         },
@@ -417,7 +431,7 @@ quest.sections =
             ['Mythralline_Wellspring_5'] =
             {
                 onTrigger = function(player, npc)
-                    return quest:messageSpecial(zones[player:getZoneID()].text.WELLSPRING + 2)
+                    return quest:messageSpecial(bhaflauID.text.WELLSPRING + 2)
                 end,
             },
         },

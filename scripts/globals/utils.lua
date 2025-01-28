@@ -724,27 +724,22 @@ utils.mask =
         return bit.band(mask, fullMask) == fullMask
     end,
 
-    ---@nodiscard
-    ---@param bits integer
-    ---@param size integer?
-    ---@return integer
     splitBits = function(bits, size)
         local result = {}
         local mask = bit.lshift(1, size) - 1
+
         while bits > 0 do
             result[#result + 1] = bit.band(bits, mask)
             bits = bit.rshift(bits, size)
         end
+
         return result
     end,
 
-    ---@nodiscard
-    ---@param option integer
-    ---@param splitBit integer?
-    ---@return integer
     varSplit = function(option, splitBit)
         splitBit = splitBit or 16
         local mask = bit.lshift(1, splitBit) - 1
+
         return bit.band(option, mask), bit.rshift(option, splitBit)
     end,
 }

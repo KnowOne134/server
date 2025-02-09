@@ -278,41 +278,12 @@ quest.sections =
         },
         [xi.zone.WAJAOM_WOODLANDS] =
         {
-            ['Mythralline_Wellspring_1'] =
+            ['Mythralline_Wellspring'] =
             {
                 onTrigger = function(player, npc)
-                    if canFillTube(player, tube.ONE) then
-                        return quest:progressEvent(4)
-                    end
-
-                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
-                end,
-            },
-            ['Mythralline_Wellspring_2'] =
-            {
-                onTrigger = function(player, npc)
-                    if canFillTube(player, tube.TWO) then
-                        return quest:progressEvent(5)
-                    end
-
-                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
-                end,
-            },
-            ['Mythralline_Wellspring_3'] =
-            {
-                onTrigger = function(player, npc)
-                    if canFillTube(player, tube.THREE) then
-                        return quest:progressEvent(6)
-                    end
-
-                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
-                end,
-            },
-            ['Mythralline_Wellspring_4'] =
-            {
-                onTrigger = function(player, npc)
-                    if canFillTube(player, tube.FOUR) then
-                        return quest:progressEvent(7)
+                    local offset = npc:getID() - wajaomID.npc.WELLSPRING
+                    if canFillTube(player, tube.ONE + offset) then
+                        return quest:progressEvent(4 + offset)
                     end
 
                     return quest:messageSpecial(wajaomID.text.WELLSPRING + 3)
@@ -340,7 +311,7 @@ quest.sections =
         },
         [xi.zone.BHAFLAU_THICKETS] =
         {
-            ['Mythralline_Wellspring_5'] =
+            ['Mythralline_Wellspring'] =
             {
                 onTrigger = function(player, npc)
                     if canFillTube(player, tube.FIVE) then
@@ -401,25 +372,7 @@ quest.sections =
         },
         [xi.zone.WAJAOM_WOODLANDS] =
         {
-            ['Mythralline_Wellspring_1'] =
-            {
-                onTrigger = function(player, npc)
-                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
-                end,
-            },
-            ['Mythralline_Wellspring_2'] =
-            {
-                onTrigger = function(player, npc)
-                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
-                end,
-            },
-            ['Mythralline_Wellspring_3'] =
-            {
-                onTrigger = function(player, npc)
-                    return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
-                end,
-            },
-            ['Mythralline_Wellspring_4'] =
+            ['Mythralline_Wellspring'] =
             {
                 onTrigger = function(player, npc)
                     return quest:messageSpecial(wajaomID.text.WELLSPRING + 2)
@@ -428,7 +381,7 @@ quest.sections =
         },
         [xi.zone.BHAFLAU_THICKETS] =
         {
-            ['Mythralline_Wellspring_5'] =
+            ['Mythralline_Wellspring'] =
             {
                 onTrigger = function(player, npc)
                     return quest:messageSpecial(bhaflauID.text.WELLSPRING + 2)

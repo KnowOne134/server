@@ -231,7 +231,7 @@ quest.sections =
 
                     for tubeNum, keyItems in ipairs(tubeKeyItems) do
                         if player:hasKeyItem(keyItems.emptyTube) then
-                            emptyTubes = utils.setBit(emptyTubes, tubeNum - 1, 1)
+                            emptyTubes = utils.mask.setBit(emptyTubes, tubeNum - 1, 1)
                         end
                     end
 

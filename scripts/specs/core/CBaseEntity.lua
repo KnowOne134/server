@@ -725,9 +725,27 @@ end
 function CBaseEntity:isInMogHouse()
 end
 
----@nodiscard
----@return integer
-function CBaseEntity:getPlayerTriggerAreaInZone()
+---@param triggerAreaId integer
+---@return boolean
+function CBaseEntity:isPlayerInTriggerArea(triggerAreaId)
+end
+
+---@return nil
+function CBaseEntity:isPlayerInAnyTriggerArea()
+end
+
+---@param triggerAreaId integer
+---@return nil
+function CBaseEntity:onPlayerTriggerAreaEnter(triggerAreaId)
+end
+
+---@param triggerAreaId integer
+---@return nil
+function CBaseEntity:onPlayerTriggerAreaLeave(triggerAreaId)
+end
+
+---@return nil
+function CBaseEntity:clearPlayerTriggerAreas()
 end
 
 ---@param statusID integer
@@ -820,6 +838,12 @@ end
 ---@param setval integer?
 ---@return nil
 function CBaseEntity:addTeleport(teleType, bitval, setval)
+end
+
+---@param pos table
+---@param mode integer
+---@return nil
+function CBaseEntity:positionSpecial(pos, mode)
 end
 
 ---@nodiscard
@@ -2931,6 +2955,10 @@ end
 function CBaseEntity:delMod(modID, value)
 end
 
+---@return nil
+function CBaseEntity:printAllMods(modID, value)
+end
+
 ---@nodiscard
 ---@param modId integer
 ---@return integer
@@ -3276,23 +3304,20 @@ function CBaseEntity:trustPartyMessage(messageId)
 end
 
 ---@param targ integer
----@param cond integer
----@param condition_arg integer
----@param react integer
----@param select integer
----@param selectorArg integer
+---@param conditions table
+---@param reactions table
 ---@param retry integer?
 ---@return string
-function CBaseEntity:addSimpleGambit(targ, cond, condition_arg, react, select, selectorArg, retry)
+function CBaseEntity:addGambit(targ, conditions, reactions, retry)
 end
 
 ---@param id string
 ---@return nil
-function CBaseEntity:removeSimpleGambit(id)
+function CBaseEntity:removeGambit(id)
 end
 
 ---@return nil
-function CBaseEntity:removeAllSimpleGambits()
+function CBaseEntity:removeAllGambits()
 end
 
 ---@param trigger integer

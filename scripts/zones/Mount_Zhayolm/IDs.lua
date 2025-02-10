@@ -12,7 +12,7 @@ zones[xi.zone.MOUNT_ZHAYOLM] =
         ITEM_OBTAINED                 = 6390, -- Obtained: <item>.
         GIL_OBTAINED                  = 6391, -- Obtained <number> gil.
         KEYITEM_OBTAINED              = 6393, -- Obtained key item: <keyitem>.
-        WARHORSE_HOOFPRINT            = 4000, -- You find the hoofprint of a gigantic warhorse...
+        WARHORSE_HOOFPRINT            = 6400, -- You find the hoofprint of a gigantic warhorse...
         FELLOW_MESSAGE_OFFSET         = 6419, -- I'm ready. I suppose.
         CARRIED_OVER_POINTS           = 7001, -- You have carried over <number> login point[/s].
         LOGIN_CAMPAIGN_UNDERWAY       = 7002, -- The [/January/February/March/April/May/June/July/August/September/October/November/December] <number> Login Campaign is currently underway!
@@ -25,6 +25,7 @@ zones[xi.zone.MOUNT_ZHAYOLM] =
         CANNOT_LEAVE                  = 7332, -- You cannot leave this area while in the possession of <keyitem>.
         RESPONSE                      = 7341, -- There is no response...
         YOU_HAVE_A_BADGE              = 7354, -- You have a %? Let me have a closer look at that...
+        NOTHING_OUT_OF_ORDINARY       = 7375, -- There is nothing out of the ordinary here.
         HAND_OVER_TO_IMMORTAL         = 7428, -- You hand over the % to the Immortal.
         YOUR_IMPERIAL_STANDING        = 7429, -- Your Imperial Standing has increased!
         MINING_IS_POSSIBLE_HERE       = 7430, -- Mining is possible here if you have <item>.
@@ -56,7 +57,8 @@ zones[xi.zone.MOUNT_ZHAYOLM] =
     },
     npc =
     {
-        MINING = GetTableOfIDs('Mining_Point'),
+        HOOFPRINT = GetFirstID('Warhorse_Hoofprint'),
+        MINING    = GetTableOfIDs('Mining_Point'),
     },
 }
 

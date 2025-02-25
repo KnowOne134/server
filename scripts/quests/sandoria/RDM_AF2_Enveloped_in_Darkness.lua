@@ -141,7 +141,9 @@ quest.sections =
                 end,
 
                 [5] = function(player, csid, option, npc)
-                    quest:complete(player)
+                    if quest:complete(player) then
+                        quest:setVar(player, 'Option', 1)
+                    end
                 end,
             },
         },
@@ -188,6 +190,38 @@ quest.sections =
                     end
                 end,
             },
+        },
+    },
+    {
+        check = function(player, status, vars)
+            return status == xi.questStatus.QUEST_COMPLETED and
+                player:getQuestStatus(xi.questLog.SANDORIA, xi.quest.id.sandoria.PEACE_FOR_THE_SPIRIT) == xi.questStatus.QUEST_AVAILABLE
+        end,
+
+        [xi.zone.CHATEAU_DORAGUILLE] =
+        {
+            ['Curilla'] =
+            {
+                onTrigger = function(player, npc)
+                    if quest:getVar(player, 'Option') == 1 or player:needToZone() then
+                        return quest:event(114)
+                    end
+                end,
+            },
+
+            onEventFinish =
+            {
+                [114] = function(player, csid, option, npc)
+                    quest:setVar(player, 'Option', 0)
+                    player:needToZone(true)
+                end,
+            },
+        },
+
+        [xi.zone.SOUTHERN_SAN_DORIA] =
+        {
+            ['Sharzalion']  = quest:event(69):replaceDefault(),
+            ['Valderotaux'] = quest:event(53):replaceDefault(),
         },
     },
 }

@@ -152,6 +152,18 @@ quest.sections =
             },
         },
     },
+    {
+        check = function(player, status, vars)
+            return status == xi.questStatus.QUEST_COMPLETED and
+            player:getQuestStatus(xi.questLog.SANDORIA, xi.quest.id.sandoria.ENVELOPED_IN_DARKNESS) ~= xi.quest.status.COMPLETED
+        end,
+
+        [xi.zone.SOUTHERN_SAN_DORIA] =
+        {
+            ['Sharzalion']  = quest:event(68):replaceDefault(),
+            ['Valderotaux'] = quest:event(53):replaceDefault(),
+        },
+    },
 }
 
 return quest

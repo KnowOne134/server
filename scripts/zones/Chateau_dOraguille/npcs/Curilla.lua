@@ -64,45 +64,17 @@ entity.onTrigger = function(player, npc)
     then
         player:startEvent(562)
 
-    -- "Peace for the Spirit" (RDM AF Body)
-    elseif peaceForTheSpirit == xi.questStatus.QUEST_ACCEPTED then
-        local questStatus = player:getCharVar('peaceForTheSpiritCS')
-        if questStatus == 5 then
-            player:startEvent(51)
-        elseif questStatus > 1 then
-            player:startEvent(113)
-        else
-            player:startEvent(108)
-        end
-    elseif
-        mJob == xi.job.RDM and
-        mLvl >= xi.settings.main.AF2_QUEST_LEVEL and
-        envelopedInDarkness == xi.questStatus.QUEST_COMPLETED and
-        peaceForTheSpirit == xi.questStatus.QUEST_AVAILABLE
-    then
-        player:startEvent(109) -- Start
-
-    -- Default dialogue after "Peace for the Spirit"
-    elseif peaceForTheSpirit == xi.questStatus.QUEST_COMPLETED then
-        player:startEvent(52)
-
     -- Default dialogue after "Enveloped in Darkness"
     elseif
         envelopedInDarkness == xi.questStatus.QUEST_COMPLETED and
         peaceForTheSpirit == xi.questStatus.QUEST_AVAILABLE
     then
         player:startEvent(114)
-
-    -- Default dialogue
-    else
-        player:startEvent(530)
     end
 end
 
 entity.onEventFinish = function(player, csid, option, npc)
-    if csid == 109 and option == 1 then
-        player:addQuest(xi.questLog.SANDORIA, sandyQuests.PEACE_FOR_THE_SPIRIT)
-    elseif csid == 562 then
+    if csid == 562 then
         player:setCharVar('WildcatSandy', utils.mask.setBit(player:getCharVar('WildcatSandy'), 15, true))
     elseif csid == 573 and option == 2 then
         player:addSpell(xi.magic.spell.CURILLA, true, true)
